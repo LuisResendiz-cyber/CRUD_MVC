@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+</head>
+<body>
+  
+  <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+    Launch demo modal
+  </button>
+  
+  <!-- COTIZADOR -->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-backdrop="static">
+  <div class="modal-dialog" style="min-width: 90%;">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h3 class="modal-title" id="exampleModalLabel">Credito Persona Citibanamex</h3>
+          </div>
+          <div class="modal-body">
+              <!-- Inputs Column -->
+              <div class="inputs-column">
+                  <div class="form-group">
+                      <label for="MontoPrestamo" class="font-weight-bold">Ingresa el monto que deseas
+                          solicitar:</label>
+                      <input type="number" class="form-control" id="MontoPrestamo" aria-describedby="emailHelp">
+                      <p id="textInformation">Minimo $10,000 MXN- Maximo $750,000 MXN</p>
+                  </div>
+                  <p class="font-weight-bold">Plazo de Prestamo</p>
+                  <div class="grid">
+                      <label class="card">
+                          <input name="TasaAnual" class="radio" value="24" type="radio">
+                          <span class="plan-details">
+                              <span class="plan-cost">24</span>
+                          </span>
+                      </label>
+                      <label class="card">
+                          <input name="TasaAnual" class="radio" value="36" type="radio">
+                          <span class="plan-details">
+                              <span class="plan-cost">36</span>
+                          </span>
+                      </label>
+                      <label class="card">
+                          <input name="TasaAnual" class="radio" value="48" type="radio">
+                          <span class="plan-details">
+                              <span class="plan-cost">48</span>
+                          </span>
+                      </label>
+                      <label class="card">
+                          <input name="TasaAnual" class="radio" value="60" type="radio">
+                          <span class="plan-details">
+                              <span class="plan-cost">60</span>
+                          </span>
+                      </label>
+                  </div>
+                  <br>
+                  <div class="row">
+                      <div class="col-3">
+                          <label for="PlazoPrestamo">Plazo Prestamo</label>
+                      </div>
+                      <div class="col-3">
+                          <input type="text" class="form-control" id="ValorPlazoPrestamo">
+                      </div>
+                      <div class="col-6">
+                      </div>
+                  </div>
+                  <br>
+                  <div class="row">
+                      <div class="col-12">
+                          <input type="range" min="14" max="50" value="0" class="form-control-range range-slider"
+                              id="PlazoPrestamo" style="width: 100%;">
+                      </div>
+                  </div>
+                  <br>
+                  <button type="button" id="Cotizar" class="btn btn-primary btn-lg btn-block col-12">Cotizar
+                      Prestamo</button>
+                  <input type="text" hidden class="form-control" id="InteresPeriodo">
+                  <input type="text" hidden class="form-control" id="MontoPago">
+              </div>
+
+
+              <!-- Table Column -->
+              <div class="table-column">
+                  <table class="table table-bordered" id="tblCotizador">
+                      <thead>
+                          <tr>
+                              <th style="text-align: center;">Mes</th>
+                              <th style="text-align: center;">Saldo de Capital</th>
+                              <th style="text-align: center;">Pago de Capital</th>
+                              <th style="text-align: center;">Pago de Intereses</th>
+                              <th style="text-align: center;">Pago Fijo Mensual (Capital+Intereses)</th>
+                              <th style="text-align: center;">Saldo</th>
+                              <th style="text-align: center;">Pago de IVA Intereses*</th>
+                              <th style="text-align: center;">Pago Mensual Total*</th>
+                          </tr>
+                      </thead>
+                      <tbody id="tbCotizador">
+                      </tbody>
+                  </table>
+              </div>
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-danger" id="btnCerrar" data-dismiss="modal">Cerrar
+                  Cotizador</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+
+  <style>
+    .custom-form-control {
+        display: block;
+        width: 80%;
+        padding: 0.310rem 0.70rem;
+        font-size: 1rem;
+        line-height: 1.5;
+        color: #495057;
+        background-color: #fff;
+        background-clip: padding-box;
+        border: 1px solid #ced4da;
+        border-radius: 0.25rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+        margin: 0;
+        box-sizing: border-box;
+    }
+  
+    .custom-form-control:focus {
+        border-color: #80bdff;
+        outline: 0;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+  
+    .modal-body {
+        display: flex;
+        flex-direction: row;
+        height: 60vh;
+        /* Ajusta esto según sea necesario */
+    }
+  
+    .inputs-column {
+        flex: 0 0 5/12;
+        /* 5 de 12 columnas de ancho */
+        max-width: 5/12;
+        padding: 15px;
+        /* Ajusta el padding según sea necesario */
+    }
+  
+    .table-column {
+        flex: 1;
+        padding: 15px;
+        /* Ajusta el padding según sea necesario */
+        overflow-y: auto;
+    }
+  
+    table {
+        width: 100%;
+    }
+  
+    :root {
+        --card-line-height: 1.2em;
+        --card-padding: 1em;
+        --card-radius: 0.5em;
+        --color-green: #558309;
+        --color-gray: #e2ebf6;
+        --color-dark-gray: #c4d1e1;
+        --radio-border-width: 2px;
+        --radio-size: 1.5em;
+    }
+  
+    .grid {
+        display: flex;
+        grid-gap: var(--card-padding);
+        margin: 0 auto;
+        max-width: 35em;
+        padding: 0;
+  
+        @media (min-width: 42em) {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+  
+    .card {
+        border-radius: var(--card-radius);
+        position: relative;
+  
+        &:hover {
+            box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.15);
+        }
+    }
+  
+    .radio {
+        font-size: inherit;
+        margin: 0;
+        position: absolute;
+        right: calc(var(--card-padding) + var(--radio-border-width));
+        top: calc(var(--card-padding) + var(--radio-border-width));
+    }
+  
+    @supports(-webkit-appearance: none) or (-moz-appearance: none) {
+        .radio {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            background: #fff;
+            border: var(--radio-border-width) solid var(--color-gray);
+            border-radius: 50%;
+            cursor: pointer;
+            height: var(--radio-size);
+            outline: none;
+            transition:
+                background 0.2s ease-out,
+                border-color 0.2s ease-out;
+            width: var(--radio-size);
+  
+            &::after {
+                border: var(--radio-border-width) solid #fff;
+                border-top: 0;
+                border-left: 0;
+                content: '';
+                display: block;
+                height: 0.75rem;
+                left: 25%;
+                position: absolute;
+                top: 50%;
+                transform:
+                    rotate(45deg) translate(-50%, -50%);
+                width: 0.375rem;
+            }
+  
+            &:checked {
+                background: var(--color-green);
+                border-color: var(--color-green);
+            }
+        }
+  
+        .card:hover .radio {
+            border-color: var(--color-dark-gray);
+  
+            &:checked {
+                border-color: var(--color-green);
+            }
+        }
+    }
+  
+    .plan-details {
+        border: var(--radio-border-width) solid var(--color-gray);
+        border-radius: var(--card-radius);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        padding: var(--card-padding);
+        transition: border-color 0.2s ease-out;
+    }
+  
+    .card:hover .plan-details {
+        border-color: var(--color-dark-gray);
+    }
+  
+    .radio:checked~.plan-details {
+        border-color: var(--color-green);
+    }
+  
+    .radio:focus~.plan-details {
+        box-shadow: 0 0 0 2px var(--color-dark-gray);
+    }
+  
+    .radio:disabled~.plan-details {
+        color: var(--color-dark-gray);
+        cursor: default;
+    }
+  
+    .radio:disabled~.plan-details {
+        color: var(--color-dark-gray);
+    }
+  
+    .card:hover .radio:disabled~.plan-details {
+        border-color: var(--color-gray);
+        box-shadow: none;
+    }
+  
+    .card:hover .radio:disabled {
+        border-color: var(--color-gray);
+    }
+  
+    .plan-cost {
+        font-size: 1.8rem;
+        font-weight: bold;
+        padding: 0.5rem 0;
+    }
+  
+    .textInformation {
+        font-family: "Interstate,sans-serif";
+        font-size: .875rem;
+    }
+  
+    .custom-modal-size .modal-dialog {
+  max-width: 80%; /* Puedes ajustar este valor según lo necesites */
+  width: 100%;
+  }
+  
+  .custom-modal-size .modal-content {
+  height: 10%; /* Ajusta la altura si es necesario */
+  }
+  
+  
+    
+    </style>
+
+
+</body>
+</html>

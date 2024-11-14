@@ -1,0 +1,66 @@
+-- servinventario.cat_campanas definition
+
+CREATE TABLE `cat_campanas` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_campana` int(11) NOT NULL,
+  `NOMBRE_CAMPANA` text NOT NULL,
+  `ESTATUS` int(11) NOT NULL,
+  `fecha` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+
+
+1	Invex_Internet	1
+2	BanorteCredito	1
+3	Amex_Insurance	1
+4	HSBC	1
+5	TDCAMEXONLINE	1
+6	OpenPay	1
+7	Amex_Insurance_Digital	1
+8	Citibanamex	1
+9	CitiBanco	1
+10	CitiSofom	1
+11	INVEXINT	1
+
+-- servinventario.enlaces definition
+
+CREATE TABLE `enlaces` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `titulo` varchar(500) NOT NULL,
+  `url` varchar(500) NOT NULL,
+  `id_campana` int(11) NOT NULL,
+  `Fecha` date NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `id_campana` (`id_campana`),
+  CONSTRAINT `enlaces_ibfk_1` FOREIGN KEY (`id_campana`) REFERENCES `cat_campanas` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_spanish_ci;
+
+
+-- servinventario.usuario_campana definition
+
+CREATE TABLE `usuario_campana` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `id_campana` int(11) NOT NULL,
+  `fecha_asignacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `usuario_campana_ibfk_1` (`id_usuario`),
+  KEY `usuario_campana_ibfk_2` (`id_campana`),
+  CONSTRAINT `usuario_campana_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `usuario_campana_ibfk_2` FOREIGN KEY (`id_campana`) REFERENCES `cat_campanas` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;
+
+
+-- servinventario.usuario_campana definition
+
+CREATE TABLE `usuario_campana` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(11) NOT NULL,
+  `id_campana` int(11) NOT NULL,
+  `fecha_asignacion` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `usuario_campana_ibfk_1` (`id_usuario`),
+  KEY `usuario_campana_ibfk_2` (`id_campana`),
+  CONSTRAINT `usuario_campana_ibfk_1` FOREIGN KEY (`id_usuario`) REFERENCES `usuarios` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `usuario_campana_ibfk_2` FOREIGN KEY (`id_campana`) REFERENCES `cat_campanas` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8 COLLATE=utf8_spanish_ci;

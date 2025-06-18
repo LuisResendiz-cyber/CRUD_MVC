@@ -1,0 +1,77 @@
+CREATE OR REPLACE PROCEDURE spi_reporte_break AS
+
+    CURSOR c_agentes IS
+    SELECT DISTINCT
+        u_agente AS agente
+    FROM
+        eventlog
+    WHERE
+        trunc(horadia) = trunc(sysdate);
+
+    c_eventos       SYS_REFCURSOR;
+    v_evento        VARCHAR2(50);
+    v_ultimo_evento VARCHAR2(50);
+    v_id            NUMBER;
+    v_ultimo_id     NUMBER;
+BEGIN
+    FOR rec IN c_agentes LOOP
+        OPEN c_eventos FOR SELECT u_evento, evento FROM
+                                                  eventlog
+                           WHERE
+                                   u_agente = rec.agente
+                               AND trunc(horadia) = trunc(sysdate)
+                               AND evento LIKE '%CAPACITACION%'
+                           ORDER BY
+                               horadia;
+
+        LOOP
+            FETCH c_eventos INTO
+                v_id,
+                v_evento;
+            EXIT WHEN c_eventos%notfound;                        
+          IF v_evento = v_ultimo_evento THEN
+                DELETE FROM eventlog
+                WHERE
+                    u_evento = v_ultimo_id;
+                    COMMIT;
+            END IF;
+            v_ultimo_evento := v_evento;
+            v_ultimo_id := v_id;                                 
+        END LOOP;
+        CLOSE c_eventos;
+    END LOOP;
+END;
+
+
+
+
+  CREATE TABLE "CITISOFOM"."EVENTLOG" 
+   (	"U_EVENTO" NUMBER(10,0) NOT NULL ENABLE, 
+	"HORADIA" DATE, 
+	"U_AGENTE" NUMBER(10,0), 
+	"EVENTO" VARCHAR2(511 BYTE), 
+	"RESULTADO" VARCHAR2(255 BYTE), 
+	"MAQUINA" VARCHAR2(255 BYTE), 
+	"U_CAMPAÑA" NUMBER(4,0) DEFAULT 1, 
+	"USUARIO_ID" NUMBER(7,0)
+   ) SEGMENT CREATION IMMEDIATE 
+  PCTFREE 10 PCTUSED 40 INITRANS 1 MAXTRANS 255 NOCOMPRESS LOGGING
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+  TABLESPACE "CITISOFOM_DATA" ;
+
+  CREATE INDEX "CITISOFOM"."IX_EVENTLOG_1" ON "CITISOFOM"."EVENTLOG" ("HORADIA", "U_AGENTE") 
+  PCTFREE 10 INITRANS 2 MAXTRANS 255 COMPUTE STATISTICS 
+  STORAGE(INITIAL 65536 NEXT 1048576 MINEXTENTS 1 MAXEXTENTS 2147483645
+  PCTINCREASE 0 FREELISTS 1 FREELIST GROUPS 1 BUFFER_POOL DEFAULT FLASH_CACHE DEFAULT CELL_FLASH_CACHE DEFAULT)
+  TABLESPACE "CITISOFOM_DATA" ;
+
+
+  GRANT SELECT ON "CITISOFOM"."EVENTLOG" TO "CUBOS";
+  GRANT DELETE, INSERT, SELECT ON "CITISOFOM"."EVENTLOG" TO "DESARROLLO";
+  GRANT INSERT, SELECT ON "CITISOFOM"."EVENTLOG" TO "DBO";
+  GRANT SELECT ON "CITISOFOM"."EVENTLOG" TO "ASISTENCIA";
+  GRANT SELECT ON "CITISOFOM"."EVENTLOG" TO "CITISOFOMWEB";
+  GRANT DELETE, INSERT, SELECT, UPDATE ON "CITISOFOM"."EVENTLOG" TO "CITISOFOMAPP";
+  GRANT SELECT, UPDATE ON "CITISOFOM"."EVENTLOG" TO "IM_CITISOFOM";
+

@@ -486,3 +486,618 @@ if (!$result->EOF) {
 
 
 ?>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const { default: axios } = require("axios");
+const dopplerData = require("../config/dopplerConfig.json");
+const correosJson = require("../public/json/correos.json");
+const actMailer = require("../model/model-mailer");
+const { actionsMysql } = require("../model/model-mysql");
+
+const path = require("path");
+const csv = require("csv-parser");
+const fs = require("fs");
+const {
+  oraExcProc,
+  oraExcProcNoCursor,
+  createConnObj,
+  oraExcProc2,
+} = require("../model/model-oracle");
+
+const actMail = {
+  testCredenciales: async (req, res) => {
+    try {
+      const rspta = await axios.get(dopplerData.liga);
+      console.log(rspta);
+      res.json(rspta.status);
+    } catch (error) {
+      console.log("Error --", error);
+      res.send(error);
+    }
+  },
+  testEmailSend: async (req, res) => {
+    try {
+      const htmlPath = path.join(__dirname, "../public/html/layout.html");
+      let htmlContent = undefined;
+      try {
+        htmlContent = fs.readFileSync(htmlPath, "utf-8");
+        dopplerData.config.html = htmlContent;
+        for (let i = 0; i < 1; i++) {
+          const response = await axios.post(
+            dopplerData.endPointSendMail,
+            dopplerData.config,
+            {
+              params: { api_key: dopplerData.apikey },
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+          console.log("Rspta Doppler ---- ", response.status);
+        }
+
+        // res.json({ rspta: response.status });
+        res.json({ rspta: "Correos enviados" });
+
+        // res.json('Prueba')
+      } catch (error) {
+        console.log();
+        res.send("Error al leer archivo", error);
+      }
+    } catch (error) {
+      console.log(error);
+      res.send(error);
+    }
+  },
+  upLayout: async (req, res) => {
+    res.json({ rspta: "Archivo subido con exito" });
+  },
+  upCsv: async (req, res) => {
+    const csvData = req.file;
+
+    if (!csvData) {
+      return res
+        .status(400)
+        .json({ error: "No se proporcionó ningún archivo CSV" });
+    }
+
+    const csvFilePath = csvData.path;
+    const jsonData = [];
+
+    fs.createReadStream(csvFilePath)
+      .pipe(csv())
+      .on("data", (row) => {
+        jsonData.push(row);
+      })
+      .on("end", () => {       
+
+        const jsonFilePath = "src/public/json/correos.json";
+
+        fs.writeFile(jsonFilePath, JSON.stringify(jsonData, null, 2), (err) => {
+          if (err) {
+            console.error("Error al escribir el archivo JSON:", err);
+          } else {
+            console.log("Archivo JSON creado exitosamente");
+            const porcionEmail = jsonData.slice(0, 2);
+            res.json({rspta: "Correos cargados correctamente", details: porcionEmail});
+          }
+        });
+
+        fs.unlink(csvFilePath, (err) => {
+          if (err) {
+            console.error("Error al eliminar el archivo CSV:", err);
+          } else {
+            console.log("Archivo CSV eliminado exitosamente");
+          }
+        });
+      })
+      .on("error", (err) => {
+        console.error("Error al procesar el archivo CSV:", err);
+        res.status(500).json({ error: "Error al procesar el archivo CSV" });
+      });
+  },
+  sendMailing: async (req, res) => {
+
+    const { idTemplate } = req.body;
+
+    const url = dopplerData.urlSendMailTemplate + idTemplate + "/message";
+    try {
+      let countMail = 0;
+      for (const destinatario of correosJson) {
+        const { CORREO_ELECTRONICO, NOMBRE_ASEGURADO } = destinatario;
+
+        dopplerData.sendMailTemplate.recipients[0].email =
+          CORREO_ELECTRONICO.trim();
+        // dopplerData.sendMailTemplate.recipients[0].name = NOMBRE_ASEGURADO;
+
+        try {
+          await axios.post(url, dopplerData.sendMailTemplate, {
+            params: { api_key: dopplerData.apikey },
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (error) {
+          console.log(`Error con el correo ${CORREO_ELECTRONICO}`);
+        }
+        countMail++;
+
+        console.log(`Correos enviados: ${countMail}`);
+      }
+
+      res.json({
+        rspta: "Success",
+        mensaje: "Correos enviados exitosamente",
+      });
+    } catch (error) {
+      console.log(error);
+      res.status(500).json({ error: error.message });
+    }
+  },
+  createTemplate: async (req, res) => {
+    const {
+      nombrePlantilla,
+      correoRemitente,
+      nombreRemitente,
+      asunto,
+      contenidoPlantilla,
+    } = req.body;
+
+    try {
+      const htmlPath = path.join(
+        __dirname,
+        `../public/html/${contenidoPlantilla}`
+      );
+      let htmlContent = undefined;
+      htmlContent = fs.readFileSync(htmlPath, "utf-8");
+
+      dopplerData.createTemplate.from_name = nombreRemitente;
+      dopplerData.createTemplate.from_email = correoRemitente;
+      dopplerData.createTemplate.name = nombrePlantilla;
+      dopplerData.createTemplate.subject = asunto;
+      dopplerData.createTemplate.body = htmlContent;
+
+      const response = await axios.post(
+        dopplerData.urlCreateTemplate,
+        dopplerData.createTemplate,
+        {
+          params: { api_key: dopplerData.apikey },
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      console.log("Rspta Doppler ---- ", response.status);
+
+      //EDITAR EL IDTEMPLATE PARA QUE SEA DINAMICO
+      dopplerData.idTemplateMailing = response.data.createdResourceId;
+      fs.writeFileSync(
+        "src/config/dopplerConfig.json",
+        JSON.stringify(dopplerData, null, 2)
+      );
+
+      res.json({
+        rspta: response.status,
+        idPlantilla: response.data.createdResourceId,
+        mensaje: response.data.message,
+      });
+    } catch (error) {
+      console.log(error);
+      res.send(error);
+    }
+  },
+  sendMaillMass: async (req, res) => {
+    const { correoRemitente, idTemplate, nombreRemitente } = req.body;
+
+    const url = dopplerData.urlSendMailTemplate + idTemplate + "/message";
+
+    dopplerData.sendMailTemplate.recipients[0].email = correoRemitente;
+    dopplerData.sendMailTemplate.recipients[0].name = nombreRemitente;
+
+    try {
+      const response = await axios.post(url, dopplerData.sendMailTemplate, {
+        params: { api_key: dopplerData.apikey },
+        headers: { "Content-Type": "application/json" },
+      });
+      console.log("Rspta Doppler ---- ", response.status);
+
+      res.json({
+        rspta: response.status,
+        idPlantilla: response.data.createdResourceId,
+        mensaje: response.data.message,
+      });
+    } catch (error) {
+      console.log(error);
+      res.send(error);
+    }
+  },
+  sendMail: async (req, res) => {
+    const { email, subject, content } = req.body;
+    try {
+      const mailOptions = {
+        to: email,
+        subject: `${subject}`,
+        html: content,
+      };
+      let nObjMailer = await actMailer.createObjMailer(mailOptions);
+      if (nObjMailer == 200) {
+        await actionsMysql.saveLogCron(subject, 1);
+
+        res.json({ status: 200, rspta: "MAILS SENT" });
+      } else {
+        await actionsMysql.saveLogCron(subject, 0);
+        res.send("Error al enviar correo");
+      }
+    } catch (error) {
+      console.log(error);
+      res.status(400).send(error);
+    }
+  },
+  checkEmailRecipients: async (req,res) => {
+    // console.log(correosJson)
+    const emailsCorto = correosJson.slice(0, 2);
+    res.json({rspta: `Total de correos cargados ${correosJson.length}`, details: emailsCorto})
+
+  },
+  repAsistencia: async (req, res) => {
+    const opcion = 2;
+    const campaign = 0;
+    const nameProcedure = "SPS_ASISTENCIA";
+    let parameters = { option: opcion };
+    objConnOracle = await createConnObj(campaign, nameProcedure, parameters);
+
+    if (objConnOracle == null || objConnOracle == undefined) {
+      console.log("NO CREDENTIALS FOR THIS CAMPAIGN");
+      res.json({ status: 402, rspta: "NO CREDENTIALS FOR THIS CAMPAIGN" });
+    } else {
+      try {
+        const oraRspta = await oraExcProc2(objConnOracle);
+
+        if (oraRspta.length == 0) {
+          console.log("NO DATA IN ORACLE");
+          res.json({ status: 402, rspta: "NO DATA IN ORACLE" });
+        } else {
+          const filePath = path.join(__dirname, "../public/csv/asistencia.csv");
+          // const filePath = 'asistencia.csv'
+          const csvData =
+            Object.keys(oraRspta[0]).join(",") +
+            "\n" +
+            oraRspta.map((obj) => Object.values(obj).join(",")).join("\n");
+
+          const writeFileAsync = async () => {
+            try {
+              await fs.promises.writeFile(filePath, csvData);
+              console.log(
+                "El archivo CSV ha sido creado exitosamente:",
+                filePath
+              );
+
+              const csvContent = fs.readFileSync(filePath, "utf-8");
+
+              const sendMail = await senMailAsistencia(csvContent);
+              // console.log(sendMail)
+              return sendMail;
+            } catch (err) {
+              console.error("Error al escribir el archivo:", err);
+            }
+          };
+
+          // Llamar a la función asíncrona para escribir el archivo CSV
+          const asistencia = await writeFileAsync();
+          console.log(asistencia);
+          res.send(asistencia);
+        }
+      } catch (error) {
+        console.log(error);
+      }
+    }
+  },
+  downloadRepAsistencia: (req, res) => {
+    const filePath = path.join(__dirname, "../public/csv/asistencia.csv");
+
+    fs.readFile(filePath, "utf-8", (err, data) => {
+      if (err) {
+        console.error("Error al leer el archivo CSV:", err);
+        res.status(500).send("Error interno del servidor");
+        return;
+      }
+
+      // Establece las cabeceras para la descarga del archivo
+      res.setHeader("Content-Type", "text/csv");
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=asistencia.csv"
+      );
+
+      // Envía el contenido del archivo CSV como respuesta HTTP
+      res.send(data);
+    });
+  },
+  massEmailHsbc: async (req, res) => {
+    const campaign = 998;
+    const nameProcedure = "XSP_GET_SMS_EMAIL";
+
+    const url = `${dopplerData.urlSendMailTemplate}de7326ea-523f-402f-972b-62eb710dcb4b/message`;
+    objConnOracle = await createConnObj(campaign, nameProcedure);
+
+    try {
+      const objConnOracle = await createConnObj(campaign, nameProcedure);
+  
+      if (!objConnOracle) {
+        console.log("NO CREDENTIALS FOR THIS CAMPAIGN");
+        return res.status(402).json({ rspta: "NO CREDENTIALS FOR THIS CAMPAIGN" });
+      }
+  
+      const msjMasivos = await oraExcProc(objConnOracle);
+  
+      if (!msjMasivos.length) {
+        return res.json({
+          rspta: "Error",
+          mensaje: "Sin correos para envio masivo"
+        });
+      }
+  
+      const emails = msjMasivos
+        .map((subArray) => subArray[5])
+        .filter((email) => email !== "NO_EMAIL");
+  
+      let countMail = 0;
+  
+      for (const email of emails) {
+        const trimmedEmail = email.trim();
+        dopplerData.sendMailTemplate.recipients[0].email = trimmedEmail;
+        dopplerData.sendMailTemplate.from_name = 'HSBC_PRUEBA_5';
+        dopplerData.sendMailTemplate.from_email = 'reportes@impulse-telecom.com';
+  
+        try {
+          await axios.post(url, dopplerData.sendMailTemplate, {
+            params: { api_key: dopplerData.apikey },
+            headers: { "Content-Type": "application/json" },
+          });
+          countMail++;
+        } catch (error) {
+          console.log(`Error con el correo ${trimmedEmail}: ${error.message}`);
+        }
+      }
+  
+      res.json({
+        rspta: "Success",
+        mensaje: "Correos enviados exitosamente",
+        total: countMail,
+      });
+  
+    } catch (error) {
+      console.log("Error en massEmailHsbc:", error);
+      res.status(500).json({ rspta: "Error", mensaje: "Error interno del servidor" });
+    }
+  },
+  /*EmailRetardos: async (req, res) => {
+    const campaign = 1;
+    const nameProcedure = "SPS_CONTROL_RETARDOS";    
+    
+    objConnOracle = await createConnObj(campaign, nameProcedure);
+    
+    try {    
+
+      //mando a mi base a traer los correos
+      const email_base = await oraExcProc(objConnOracle);
+
+      if (!objConnOracle) {
+        console.log("NO CREDENTIALS FOR THIS CAMPAIGN");
+        return res.status(402).json({ rspta: "NO CREDENTIALS FOR THIS CAMPAIGN" });
+      }            
+      if (!email_base.length) {
+        return res.json({
+          rspta: "Error",
+          mensaje: "Sin correos para envio masivo"
+        });
+      }
+
+      // Accedo a los correos
+      const emails = email_base.map((subArray) => subArray[1]);
+
+      let correosEnviados = 0;
+      for (const email of emails) {
+
+        const mailOptions = {
+          to: email,
+          subject: `Retardos acumulados`,
+          html: `<h5>HOLAAAAAA ${email}</h5>`,
+        };
+
+        try {
+          let nObjMailer = await actMailer.createObjMailer(mailOptions);
+
+          if (nObjMailer == 200) {
+            console.log('MAILS SENT');
+          }    
+        } catch (error) {
+          console.log(error);
+        }
+        correosEnviados++;
+      }
+
+      res.json({
+        rspta: "Success",
+        mensaje: "Correos enviados exitosamente",
+        total: correosEnviados,
+      });
+  
+     } catch (error) {
+       res.status(500).json({ rspta: "Error", mensaje: "Error interno del servidor" });
+     }
+  },*/
+
+EmailRetardos: async (req, res) => {
+    const { procedure, subject, content } = req.body;
+
+    console.log(procedure);
+    console.log(subject);
+    console.log(content);
+
+    return;
+
+
+    const campaign = 1;
+    const nameProcedure = "SPS_CONTROL_RETARDOS";    
+    
+    const objConnOracle = await createConnObj(campaign, nameProcedure);
+    
+    try {    
+        // Mando a mi base a traer los correos
+        const email_base = await oraExcProc(objConnOracle);
+
+        if (!objConnOracle) {
+            console.log("NO CREDENTIALS FOR THIS CAMPAIGN");
+            return res.status(402).json({ rspta: "NO CREDENTIALS FOR THIS CAMPAIGN" });
+        }            
+        if (!email_base.length) {
+            return res.json({
+                rspta: "Error",
+                mensaje: "Sin correos para envio masivo"
+            });
+        }
+
+        // Accedo a los correos DE JEFES INMEDIATOS
+        const datosJefe = email_base.map((subArray) => ({
+          nombre: subArray[6],
+          email: subArray[7], 
+        }));
+      
+
+      //ACCEDER DATOS USUARIO
+      const Usuario = email_base.map((subArray) => ({
+        nombre: subArray[6],
+        email: subArray[7], 
+      }));
+
+      //ACCEDER A DATOS LABORALES
+      const Laborales = email_base.map((subArray) => ({
+        nombre: subArray[6],
+        email: subArray[7], 
+      }));
+
+      console.log(datosJefe);
+      return res.json({
+        rspta: "Success",
+        mensaje: "Correos enviados exitosamente"
+    });
+
+
+
+        // Envío de correos en paralelo
+        const mailPromises = emails.map(async (email) => {
+          const mailOptions = {
+              to: email,
+              subject: subject,
+              html: `<h5>HOLAAAAAA ${email}</h5>`,
+          }; 
+          
+          console.log(mailOptions);
+            //try {
+            //  console.log(mailOptions);
+            //    let nObjMailer = await actMailer.createObjMailer(mailOptions);
+            //    return nObjMailer === 200;
+            //} catch (error) {
+            //    console.log(`Error al enviar correo a ${email}:`, error);
+            //    return false;
+            //}
+        });
+
+        // Espera a que todos los correos sean enviados
+        const results = await Promise.all(mailPromises);
+        const correosEnviados = results.filter(result => result).length; // Cuenta los correos enviados exitosamente
+
+        res.json({
+            rspta: "Success",
+            mensaje: "Correos enviados exitosamente",
+            total: correosEnviados,
+        });
+  
+    } catch (error) {
+        console.error("Error interno del servidor:", error);
+        res.status(500).json({ rspta: "Error", mensaje: "Error interno del servidor" });
+    }
+},
+
+};
+
+async function senMailAsistencia(data) {
+  const htmlPath = path.join(
+    __dirname,
+    `../public/html/reporteAsistencia.html`
+  );
+  let htmlContent = undefined;
+  htmlContent = fs.readFileSync(htmlPath, "utf-8");
+
+  try {
+    dopplerData.ASISTENCIA_IMPULSE.attachments[0].base64_content =
+      Buffer.from(data).toString("base64");
+    dopplerData.ASISTENCIA_IMPULSE.html = htmlContent;
+    const response = await axios.post(
+      dopplerData.endPointSendMail,
+      dopplerData.ASISTENCIA_IMPULSE,
+      {
+        params: { api_key: dopplerData.apikey },
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+    const rspta =
+      response.status == 201 ? { rspta: "Exito" } : { rspta: "Error" };
+    console.log(rspta);
+    return rspta;
+  } catch (error) {
+    // console.log(error)
+    return error;
+  }
+}
+
+module.exports = { actMail };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -9,4 +9,8 @@ require_once "modelos/clientes.modelo.php";
 require_once "extensiones/vendor/autoload.php";
 
 $plantilla = new ControladorPlantilla();
+
 $plantilla -> ctrPlantilla();
+
+vdgarcia@impulse-telecom.com
+  1mpul53.1TQ

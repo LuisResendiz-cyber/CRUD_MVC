@@ -25,43 +25,6 @@ async function executeQuery(sql) {
   }
 }
 
-async function smsMasivoDigital() {
-  let connection;
-
-  try {
-    const pool = db.getPool();
-    connection = await pool.getConnection();
-
-    let bindVars = {
-      // v_opcion: { dir: oracledb.BIND_IN, val: '1' },
-      rc: { dir: oracledb.BIND_OUT, type: oracledb.CURSOR },
-    };
-    let result = await connection.execute(
-      `BEGIN amexinsurancedig.XSP_GET_DATOS_SMS( :rc); END;`,
-      bindVars
-    );
-
-    let resultSet = result.outBinds.rc;
-    let rows = [];
-
-    let row;
-    while ((row = await resultSet.getRow())) {
-      rows.push(row);
-    }
-    return rows;
-  } catch (error) {
-    throw new Error("Error ejecutando procedimiento: " + error.message);
-  } finally {
-    if (connection) {
-      try {
-        await connection.close();
-      } catch (error) {
-        console.error("Error al cerrar la conexión:", error);
-      }
-    }
-  }
-}
-
 async function execProcedure(data) {
   
   let parameters

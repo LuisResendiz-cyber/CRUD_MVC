@@ -1,3 +1,11 @@
+IMP, por revisar y compartir actualizaciones necesarias para migrar E2 a E3 (endpoint, credenciales, token, etc)
+
+IMP, por compartir análisis de proceso recibidos en API ambiente pruebas.
+
+IMP, por compartir checklist con estatus de procesos operativos dependientes de API.
+
+IMP, por compartir análisis de riesgos con respectivo plan de acción para lanzamiento productivo. 
+
 <?php
 include('includes/openConnection.php');
 

@@ -1,0 +1,527 @@
+setTimeout(() => {
+    var PlazoPrestamo = document.getElementById("PlazoPrestamo");
+    var ValorPlazoPrestamo = document.getElementById("ValorPlazoPrestamo");
+    var TasaAnual = document.querySelectorAll('input[name="TasaAnual"]');
+    var InteresPeriodo = document.getElementById("InteresPeriodo");
+    var MontoPrestamo = document.getElementById("MontoPrestamo");
+    var MontoPago = document.getElementById("MontoPago");
+    var Cotizar = document.getElementById("Cotizar");
+    var textInformation = document.getElementById("textInformation");
+    var btnCerrar = document.getElementById("btnCerrar");
+    var ComisionArpertura = document.getElementById("ComisionArpertura");
+
+
+    function GetMontoPago(MontoPrestamo, InteresPeriodo, TasaAnual) {
+        let numerador = MontoPrestamo * InteresPeriodo * Math.pow((1 + InteresPeriodo), TasaAnual);
+        let denominador = Math.pow((1 + InteresPeriodo), TasaAnual) - 1;
+        let valor = numerador / denominador;
+        return valor;
+    }
+
+    TasaAnual.forEach(radio => {
+        radio.addEventListener('change', function () {
+            if (radio.checked) {
+                radioValue = parseFloat(radio.value);
+                sessionStorage.setItem("Mes", radioValue);
+
+                let Prestamo = parseFloat(MontoPrestamo.value);
+                let Interes = parseFloat(InteresPeriodo.value);
+                MontoPago.value = GetMontoPago(Prestamo, Interes, radioValue);
+            }
+        });
+    });
+
+
+    MontoPrestamo.addEventListener('keypress', function (event) {
+        const charCode = event.which ? event.which : event.keyCode;
+        if (charCode < 48 || charCode > 57) {
+            event.preventDefault();
+        }
+    });
+
+    
+    function SetComisionArpertura(cantidad) {
+        const factor = 0.029;
+        ComisionArpertura.value = Math.round(cantidad * factor);
+
+        if (isNaN(ComisionArpertura.value) || ComisionArpertura.value == "") {
+            ComisionArpertura.value = 0;
+        }
+    }
+
+    function MontoTotalPagar(Monto) {
+        let Total = Monto * parseFloat(sessionStorage.getItem("Mes"));
+        MontoTotal.value = Total;
+    }
+    
+    MontoPrestamo.addEventListener('input', function () {
+        let Prestamo = parseFloat(this.value);
+        let Interes = parseFloat(InteresPeriodo.value);
+        let data = parseFloat(sessionStorage.getItem("Mes"));
+        MontoPago.value = GetMontoPago(Prestamo, Interes, data);
+        SetComisionArpertura(parseFloat(this.value));
+        
+        textInformation.innerHTML = ''
+        textInformation.innerHTML = 'Minimo $10,000 MXN- Maximo $750,000 MXN';
+        textInformation.style.color = '#525558';
+
+        let value = parseFloat(this.value);
+        if (isNaN(value) || value > 10000 || value < 750000) {
+            Cotizar.disabled = false;
+        }
+    });
+
+
+    MontoPrestamo.addEventListener('blur', function () {
+        const value = parseFloat(this.value);
+        if (isNaN(value) || value < 10000 || value > 750000) {
+            textInformation.innerHTML = 'El dato Ingresado es Incorrecto';
+            textInformation.style.color = 'red';
+            Cotizar.disabled = true;
+        } else {
+            textInformation.innerHTML = '';
+            Cotizar.disabled = false;
+        }
+    });
+
+
+
+    //CAMBIAR EL VALOR DEL PLAZO DE PRESTAMO
+    ValorPlazoPrestamo.value = 0;
+    PlazoPrestamo.oninput = function () {
+        ValorPlazoPrestamo.value = this.value;
+        InteresPeriodo.value = (this.value / 100) / 12;
+
+        let Prestamo = parseFloat(MontoPrestamo.value);
+        let Interes = parseFloat(InteresPeriodo.value);
+        let data = parseFloat(sessionStorage.getItem("Mes"));
+
+        MontoPago.value = GetMontoPago(Prestamo, Interes, data);
+    };
+
+    Cotizar.addEventListener("click", function (e) {
+        e.preventDefault();
+
+        var val = ValorPlazoPrestamo.value;
+        var val2 = parseFloat(sessionStorage.getItem("Mes"));
+        var val3 = InteresPeriodo.value;
+        var val4 = MontoPrestamo.value;
+        var val5 = MontoPago.value;
+
+        if (val4 == '' || val2 == '' || val == '' || val == 0) {
+            swal("Cuidado", "Tienes que Agregar Todos valores que se Requieren", "warning");
+        } else {
+            var tbCotizador = document.getElementById("tbCotizador");
+            tbCotizador.innerHTML = '';
+
+            for (let i = 1; i <= val2; i++) {
+                let newRow = document.createElement("tr");
+
+                // MES
+                let mes = document.createElement("td");
+                mes.textContent = i;
+                mes.id = "ColumnaA_" + i;
+                newRow.appendChild(mes);
+
+                // SALDOCAPITAL
+                let saldoCapital = document.createElement("td");
+                saldoCapital.id = "ColumnaB_" + i;
+                newRow.appendChild(saldoCapital);
+
+                // PAGOCAPITAL
+                let PagoCapital = document.createElement("td");
+                PagoCapital.textContent = i;
+                PagoCapital.id = "ColumnaC_" + i;
+                newRow.appendChild(PagoCapital);
+
+                // PAGOINTERESORDINARIO
+                let PagoInteres = document.createElement("td");
+                PagoInteres.id = "ColumnaD_" + i;
+                newRow.appendChild(PagoInteres);
+
+
+                // PAGOFIJOMENSUAL
+                let PagoFijoMensual = document.createElement("td");
+                PagoFijoMensual.textContent = parseFloat(val5);
+                PagoFijoMensual.id = "ColumnaE_" + i;
+                newRow.appendChild(PagoFijoMensual);
+
+                // SALDO
+                let saldoInicial = document.createElement("td");
+                saldoInicial.id = "ColumnaF_" + i;
+                newRow.appendChild(saldoInicial);
+
+
+                // PAGOIVAINTERES
+                let PagoIvaInteres = document.createElement("td");
+                PagoIvaInteres.textContent = i;
+                PagoIvaInteres.id = "ColumnaG_" + i;
+                newRow.appendChild(PagoIvaInteres);
+
+                // PAGOMENSUALTOTAL
+                let PagoMensualTotal = document.createElement("td");
+                PagoMensualTotal.id = "ColumnaH_" + i;
+                newRow.appendChild(PagoMensualTotal);
+
+                // PREPAGO
+                let Prepago = document.createElement("td");
+                Prepago.id = "ColumnaI_" + i;
+                newRow.appendChild(Prepago);
+
+                // Agregar la fila completa a la tabla
+                tbCotizador.appendChild(newRow);
+            }
+
+            // Luego de crear todas las filas:
+            var ColumnaB = document.querySelectorAll('td[id^="ColumnaB_"]');
+            var ColumnaC = document.querySelectorAll('td[id^="ColumnaC_"]');
+            var ColumnaD = document.querySelectorAll('td[id^="ColumnaD_"]');
+            var ColumnaE = document.querySelectorAll('td[id^="ColumnaE_"]');
+            var ColumnaF = document.querySelectorAll('td[id^="ColumnaF_"]');
+            var ColumnaG = document.querySelectorAll('td[id^="ColumnaG_"]');
+            var ColumnaH = document.querySelectorAll('td[id^="ColumnaH_"]');
+            var ColumnaI = document.querySelectorAll('td[id^="ColumnaI_"]');
+
+            var Prepago = document.createElement('INPUT');
+            Prepago.setAttribute("type", "text");
+            Prepago.setAttribute("class", "form-control");
+            
+
+            for (let i = 0; i < ColumnaB.length; i++) {
+                if (i === 0 && ColumnaB.length > 0) {
+                    ColumnaB[0].textContent = parseFloat(val4);
+                }
+
+                let inputClone = Prepago.cloneNode(true);
+                inputClone.setAttribute("id", (i));
+                
+                ColumnaI[i].innerHTML = '';
+                ColumnaI[i].appendChild(inputClone);
+
+
+                inputClone.addEventListener('keypress', function (event) {
+                    const charCode = event.which ? event.which : event.keyCode;
+                    if (charCode < 48 || charCode > 57) {
+                        event.preventDefault();
+                    }
+                });
+
+                inputClone.addEventListener('input', function () {
+                    let prePago = parseFloat(inputClone.value) || 0;
+                    let capitalInicial = parseFloat(ColumnaB[inputClone.id].getAttribute('data-original'));
+                    let capitalPagoActual = parseFloat(ColumnaC[inputClone.id].getAttribute('data-original'));
+                    let nuevoCapital = capitalInicial - (prePago + capitalPagoActual);
+
+                    let Interes = parseFloat(InteresPeriodo.value);
+                    let mesesRestantes = parseFloat(sessionStorage.getItem("Mes")) - (parseFloat(inputClone.id) + 1);
+
+
+                    if (prePago > capitalInicial) {
+                        swal("Cuidado", "El número de prepago supera el préstamo inicial", "error");
+                        //this.value = "";
+                        return;
+                    }
+
+
+                    var nuevoMontoPago = GetMontoPago(nuevoCapital, Interes, mesesRestantes);
+                    MontoPago.value = nuevoMontoPago;
+
+                    let filaSiguiente = parseInt(inputClone.id) + 1;
+
+                    if (filaSiguiente < ColumnaB.length) {
+                        ColumnaB[filaSiguiente].textContent = nuevoCapital;
+                        ColumnaB[filaSiguiente].setAttribute('data-original', nuevoCapital);
+                    }
+
+
+                    for (let i = parseInt(inputClone.id) + 1; i < ColumnaB.length; i++) {
+
+                        ColumnaE[i].textContent = parseFloat(nuevoMontoPago);
+                        ColumnaE[i].setAttribute('data-original', nuevoMontoPago);
+
+                        let capitalPagoSiguiente = parseFloat(ColumnaC[i].getAttribute('data-original'));
+                        let saldoCapital = parseFloat(ColumnaB[i].getAttribute('data-original'));
+
+                        ColumnaD[i].textContent = (val3 * saldoCapital);
+                        ColumnaD[i].setAttribute('data-original', (val3 * saldoCapital));
+
+                        let PagoIva = parseFloat(ColumnaD[i].getAttribute('data-original'));
+                        ColumnaG[i].textContent = (PagoIva * 0.16);
+                        ColumnaG[i].setAttribute('data-original', (PagoIva * 0.16));
+
+                        let valorE = parseFloat(ColumnaE[i].getAttribute('data-original'));
+                        let valorG = parseFloat(ColumnaG[i].getAttribute('data-original'));
+                        ColumnaH[i].textContent = (valorE + valorG);
+                        ColumnaH[i].setAttribute('data-original', (valorE + valorG));
+
+                        let valorD = parseFloat(ColumnaD[i].getAttribute('data-original'));
+                        ColumnaC[i].textContent = parseFloat(valorE - valorD);
+                        ColumnaC[i].setAttribute('data-original', parseFloat(valorE - valorD));
+
+                        let valorB = parseFloat(ColumnaB[i].getAttribute('data-original'));
+                        let valorC = parseFloat(ColumnaC[i].getAttribute('data-original'));
+                        ColumnaF[i].textContent = parseFloat(valorB - valorC);
+                        ColumnaF[i].setAttribute('data-original', parseFloat(valorB - valorC));
+
+                        if (i + 1 < ColumnaB.length) {
+                            let valorF = parseFloat(ColumnaF[i].getAttribute('data-original'));
+                            ColumnaB[i + 1].textContent = valorF;
+                            ColumnaB[i + 1].setAttribute('data-original', valorF);
+                        }
+
+                        ColumnaB[i].textContent = Math.round(parseFloat(ColumnaB[i].textContent));
+                        ColumnaC[i].textContent = Math.round(parseFloat(ColumnaC[i].textContent));
+                        ColumnaD[i].textContent = Math.round(parseFloat(ColumnaD[i].textContent));
+                        ColumnaE[i].textContent = Math.round(parseFloat(ColumnaE[i].textContent));
+                        ColumnaF[i].textContent = Math.round(parseFloat(ColumnaF[i].textContent));
+                        ColumnaG[i].textContent = Math.round(parseFloat(ColumnaG[i].textContent));
+                        ColumnaH[i].textContent = Math.round(parseFloat(ColumnaH[i].textContent));
+
+
+                        nuevoCapital -= capitalPagoSiguiente;
+                    }
+                });
+                                
+                let saldoCapital = parseFloat(ColumnaB[i].textContent);
+                ColumnaD[i].textContent = (val3 * saldoCapital);
+
+                let PagoIva = parseFloat(ColumnaD[i].textContent);
+                ColumnaG[i].textContent = (PagoIva * 0.16);
+
+                let valorE = parseFloat(ColumnaE[i].textContent);
+                let valorG = parseFloat(ColumnaG[i].textContent);
+                ColumnaH[i].textContent = (valorE + valorG);
+
+                let valorD = parseFloat(ColumnaD[i].textContent);
+                ColumnaC[i].textContent = parseFloat(valorE - valorD);
+
+                let valorB = parseFloat(ColumnaB[i].textContent);
+                let valorC = parseFloat(ColumnaC[i].textContent);
+
+                ColumnaF[i].textContent = parseFloat(valorB - valorC);
+
+
+                let valorF = parseFloat(ColumnaF[i].textContent);
+
+                if (i + 1 < ColumnaB.length) {
+                    ColumnaB[i + 1].textContent = valorF;
+                }
+
+                      //READONDEAR HASTA EL FINAL DE LAS OPERACIONES
+                //READONDEAR HASTA EL FINAL DE LAS OPERACIONES
+                if (!ColumnaB[i].hasAttribute('data-original')) {
+                    ColumnaB[i].setAttribute('data-original', ColumnaB[i].textContent);
+                }
+
+                ColumnaB[i].textContent = Math.round(parseFloat(ColumnaB[i].getAttribute('data-original')));
+
+                if (!ColumnaC[i].hasAttribute('data-original')) {
+                    ColumnaC[i].setAttribute('data-original', ColumnaC[i].textContent);
+                }
+
+                ColumnaC[i].textContent = Math.round(parseFloat(ColumnaC[i].getAttribute('data-original')));
+
+
+                if (!ColumnaD[i].hasAttribute('data-original')) {
+                    ColumnaD[i].setAttribute('data-original', ColumnaD[i].textContent);
+                }
+
+                ColumnaD[i].textContent = Math.round(parseFloat(ColumnaD[i].getAttribute('data-original')));
+
+                if (!ColumnaE[i].hasAttribute('data-original')) {
+                    ColumnaE[i].setAttribute('data-original', ColumnaE[i].textContent);
+                }
+
+                ColumnaE[i].textContent = Math.round(parseFloat(ColumnaE[i].getAttribute('data-original')));
+
+
+                if (!ColumnaF[i].hasAttribute('data-original')) {
+                    ColumnaF[i].setAttribute('data-original', ColumnaF[i].textContent);
+                }
+
+                ColumnaF[i].textContent = Math.round(parseFloat(ColumnaF[i].getAttribute('data-original')));
+
+                if (!ColumnaG[i].hasAttribute('data-original')) {
+                    ColumnaG[i].setAttribute('data-original', ColumnaG[i].textContent);
+                }
+
+                ColumnaG[i].textContent = Math.round(parseFloat(ColumnaG[i].getAttribute('data-original')));
+
+
+                if (!ColumnaH[i].hasAttribute('data-original')) {
+                    ColumnaH[i].setAttribute('data-original', ColumnaH[i].textContent);
+                }
+
+                ColumnaH[i].textContent = Math.round(parseFloat(ColumnaH[i].getAttribute('data-original')));
+
+                ColumnaF[i].style.display = 'none';
+            }
+
+        }
+    });
+
+    btnCerrar.addEventListener("click", function (e) {
+        e.preventDefault();
+        PlazoPrestamo.value = 0;
+        ValorPlazoPrestamo.value = 0;
+        TasaAnual.checked = false;
+        InteresPeriodo.value = '';
+        MontoPrestamo.value = '';
+        MontoPago.value = '';
+        tbCotizador.innerHTML = '';
+    });
+
+}, 2000);
+
+
+
+
+<!-- COTIZADOR CPC-->
+<div class="modal fade" id="exampleModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true" data-backdrop="static">
+    <div class="modal-dialog" style="min-width: 90%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="exampleModalLabel">Credito Personal Citibanamex</h3>
+            </div>
+            <div class="modal-body">
+                <!-- Inputs Column -->
+                <div class="inputs-column">
+                    <div class="form-group">
+                        <label for="MontoPrestamo" class="font-weight-bold">Ingresa el monto que deseas
+                            solicitar:</label>
+                        <input type="number" class="form-control" id="MontoPrestamo" aria-describedby="emailHelp">
+                        <p id="textInformation">Minimo $10,000 MXN- Maximo $750,000 MXN</p>
+                    </div>
+                    <div class="row">
+                        <div class="col-5">
+                            <label for="ComisionArpertura">Comisión por apertura con IVA:</label>
+                        </div>
+                        <div class="col-5">
+                            <input type="text" disabled class="form-control" id="ComisionArpertura">
+                        </div>
+                    </div>
+                    <p class="font-weight-bold">Plazo de Prestamo</p>
+                    <div class="grid">
+                        <label class="card">
+                            <input name="TasaAnual" class="radio" value="24" type="radio">
+                            <span class="plan-details">
+                                <span class="plan-cost">24</span>
+                            </span>
+                        </label>
+                        <label class="card">
+                            <input name="TasaAnual" class="radio" value="36" type="radio">
+                            <span class="plan-details">
+                                <span class="plan-cost">36</span>
+                            </span>
+                        </label>
+                        <label class="card">
+                            <input name="TasaAnual" class="radio" value="48" type="radio">
+                            <span class="plan-details">
+                                <span class="plan-cost">48</span>
+                            </span>
+                        </label>
+                        <label class="card">
+                            <input name="TasaAnual" class="radio" value="60" type="radio">
+                            <span class="plan-details">
+                                <span class="plan-cost">60</span>
+                            </span>
+                        </label>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-3">
+                            <label for="PlazoPrestamo">Tasa de interes</label>
+                        </div>
+                        <div class="col-3">
+                            <input type="text" class="form-control" id="ValorPlazoPrestamo">
+                        </div>
+                        <div class="col-6">
+                        </div>
+                    </div>
+                    <br>
+                    <div class="row">
+                        <div class="col-12">
+                            <input type="range" min="14" max="50" value="0" class="form-control-range range-slider"
+                                id="PlazoPrestamo" style="width: 100%;">
+                        </div>
+                    </div>
+                    <br>
+                    <button type="button" id="Cotizar" class="btn btn-primary btn-lg btn-block col-12">Cotizar
+                        Prestamo</button>
+                    <input type="text" hidden class="form-control" id="InteresPeriodo">
+                    <input type="text" hidden class="form-control" id="MontoPago">
+                </div>
+
+
+                <!-- Table Column -->
+                <div class="table-column">
+                    <table class="table table-bordered" id="tblCotizador">
+                        <thead>
+                            <tr>
+                                <th style="text-align: center;">Mes</th>
+                                <th style="text-align: center;">Saldo de Capital</th>
+                                <th style="text-align: center;">Pago de Capital</th>
+                                <th style="text-align: center;">Pago de Intereses Ordinarios</th>
+                                <th style="text-align: center;">Pago Fijo Mensual (Capital+Intereses)</th>
+                                <!-- <th style="text-align: center;">Saldo</th> -->
+                                <th style="text-align: center;">Pago de IVA Intereses*</th>
+                                <th style="text-align: center;">Pago Mensual Total*</th>
+                                <th style="text-align: center;">Prepago</th>
+
+                            </tr>
+                        </thead>
+                        <tbody id="tbCotizador">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-danger" id="btnCerrar" data-dismiss="modal">Cerrar
+                    Cotizador</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

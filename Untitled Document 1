@@ -1,0 +1,608 @@
+Prompt, aprendizaje regulado, inteligencia generativa, etc;
+
+
+create or replace PROCEDURE             "XSP_BOT_VENTAS" (      
+    v_step VARCHAR2 DEFAULT NULL, 
+    v_ID_SURVEY VARCHAR2 DEFAULT NULL, 
+    v_ID_USER VARCHAR2 DEFAULT NULL,
+    v_DATEINSERTORACLE VARCHAR2 DEFAULT NULL,
+    v_customerid VARCHAR2 DEFAULT NULL,
+    v_ID_PHONE VARCHAR2 DEFAULT NULL,
+    v_tipificacionid VARCHAR2 DEFAULT NULL,
+    v_CAMPANA VARCHAR2 DEFAULT NULL,
+    v_STATUS_FROM_TMK VARCHAR2 DEFAULT NULL,
+    v_PRODUCTO VARCHAR2 DEFAULT NULL,
+    v_TDC VARCHAR2 DEFAULT NULL,
+    v_LINEA_TDC VARCHAR2 DEFAULT NULL,
+    v_FOLIO_BASE VARCHAR2 DEFAULT NULL,   
+    v_FECHA_NACIMIENTO VARCHAR2 DEFAULT NULL,
+    v_AP_PATERNO VARCHAR2 DEFAULT NULL,
+    v_AP_MATERNO VARCHAR2 DEFAULT NULL,
+    v_NOMBRE VARCHAR2 DEFAULT NULL,
+    v_RFC VARCHAR2 DEFAULT NULL,
+    v_HOMOCLAVE VARCHAR2 DEFAULT NULL,    
+    v_CURP VARCHAR2 DEFAULT NULL,
+    v_COMENTARIOS VARCHAR2 DEFAULT NULL,   
+    v_CALLE VARCHAR2 DEFAULT NULL,
+    v_NUMERO_EXTERIOR VARCHAR2 DEFAULT NULL,
+    v_NUMERO_INTERIOR VARCHAR2 DEFAULT NULL,
+    v_CODIGO_POSTAL VARCHAR2 DEFAULT NULL,
+    v_COLONIA VARCHAR2 DEFAULT NULL,
+    v_ESTADO  VARCHAR2 DEFAULT NULL,
+    v_MUNICIPIO_REFERENCIA  VARCHAR2 DEFAULT NULL,
+    v_MUNICIPIO VARCHAR2 DEFAULT NULL,
+    v_CELULAR VARCHAR2 DEFAULT NULL,
+    v_TELEFONO  VARCHAR2 DEFAULT NULL,
+    v_TEL_CONTACTO  VARCHAR2 DEFAULT NULL,
+    v_PAIS_NACIMIENTO VARCHAR2 DEFAULT NULL,
+    v_ENTIDAD_FEDERATIVA  VARCHAR2 DEFAULT NULL,
+    v_CORREO_ELECTRONICO  VARCHAR2 DEFAULT NULL,
+    v_INGRESO_MENSUAL VARCHAR2 DEFAULT NULL,
+    v_TIPO_COMPROBANTE_INGRESOS VARCHAR2 DEFAULT NULL,
+    v_TIPO_IDENTIFICACION VARCHAR2 DEFAULT NULL,
+    v_TIPO_COMPROBANTE_DOMICILIO  VARCHAR2 DEFAULT NULL,
+    v_NUMERO_REFERENCIAS  VARCHAR2 DEFAULT NULL,
+    v_REFERENCIA_CREDITICIA_1 VARCHAR2 DEFAULT NULL,
+    v_ULTIMOS_4_DIGITOS_TARJETA_1 VARCHAR2 DEFAULT NULL,
+    v_REFERENCIA_CREDITICIA_2 VARCHAR2 DEFAULT NULL,
+    v_ULTIMOS_4_DIGITOS_TARJETA_2 VARCHAR2 DEFAULT NULL,
+    v_REFERENCIA_CREDITICIA_3 VARCHAR2 DEFAULT NULL,
+    v_ULTIMOS_4_DIGITOS_TARJETA_3 VARCHAR2 DEFAULT NULL,
+    v_v_RP_APELLIDO_PATERNO VARCHAR2 DEFAULT NULL,
+    v_RP_APELLIDO_MATERNO VARCHAR2 DEFAULT NULL,
+    v_RP_NOMBRE VARCHAR2 DEFAULT NULL,
+    v_RP_PARENTESCO VARCHAR2 DEFAULT NULL,
+    v_RP_TELEFONO VARCHAR2 DEFAULT NULL,
+    v_RP_EXTENSION  VARCHAR2 DEFAULT NULL,
+    v_FECHA_VISITA_SUCURSAL VARCHAR2 DEFAULT NULL, 
+    rc  out SYS_REFCURSOR    
+)AS
+v_response NUMBER :=99;
+v_date_created date;
+v_details VARCHAR2(10000):= '[';
+v_error VARCHAR2(1000);
+
+v_sql VARCHAR2(1000);
+v_u_agente NUMBER:=77652;
+v_u_registro NUMBER:=0;
+v_u_telefono NUMBER:=0;
+v_u_estatusllamada NUMBER:=0;
+v_estatusllamada VARCHAR2(500) := '';
+v_u_supervisor NUMBER :=9999;
+v_exist_sale NUMBER :=0; --Validar si hay ventas para iniciar el proceso
+v_exist_customerid NUMBER :=0 ; --Validar si el customerid si existe
+v_exist_contact NUMBER :=0; --validar contactos por registro
+v_existe_ce_previo NUMBER :=0;--validar contacto efectivo previo
+v_cont_automatico NUMBER :=0;
+v_cont_consumido NUMBER :=0;
+v_exist_tipificacion NUMBER :=0 ;
+v_exist_surveypersonas NUMBER :=0 ;
+
+CURSOR COMBINACIONES IS SELECT * FROM CAT_COMB_VENTAS_BOT WHERE STATUS_COMB = 1;
+v_registro COMBINACIONES%ROWTYPE;
+
+PROCEDURE LOG_BOT (step IN NUMBER,cust IN NUMBER,v_log IN VARCHAR2,status IN NUMBER) IS
+BEGIN        
+    INSERT INTO CITISOFOM.LOG_PROCESS_BOT (STEP, CUSTOMERID, DETAILS,STATUS_LOG)
+    VALUES (step, cust, v_log,status);
+    COMMIT;
+END LOG_BOT; 
+
+BEGIN    
+    EXECUTE IMMEDIATE 'ALTER SESSION SET NLS_DATE_FORMAT=''DD/MM/RRRR''';
+
+    BEGIN    
+    v_date_created:= to_date(v_DATEINSERTORACLE, 'DD/MM/YYYY HH24:MI:SS');    
+    EXCEPTION WHEN OTHERS THEN v_date_created:=SYSDATE;
+    END;
+    IF v_step = 1 THEN --Insertar datos VENTAS_BOT 
+        BEGIN        
+            MERGE INTO VENTAS_BOT D
+            USING (SELECT v_ID_SURVEY ID_SURVEY, v_ID_USER ID_USER, v_customerid CUSTOMERID FROM DUAL) O
+            ON (D.ID_SURVEY= O.ID_SURVEY AND D.ID_USER=O.ID_USER AND D.CUSTOMERID=O.CUSTOMERID )    
+            --WHEN MATCHED THEN       
+            --POR DEFINIR QUE SUCEDE CUANDO HAY DUPLICADOS    
+            WHEN NOT MATCHED THEN    
+                INSERT(
+                ID_SURVEY,ID_USER,DATEINSERTORACLE,CUSTOMERID,ID_PHONE,TYPIFICATIONID,CAMPANA,STATUS_FROM_TMK,PRODUCTO,
+                TDC,LINEA_TDC,FOLIO_BASE,FECHA_NACIMIENTO,AP_PATERNO,AP_MATERNO,NOMBRE, RFC, HOMOCLAVE, CURP, 
+                COMENTARIOS,CALLE,NUMERO_EXTERIOR,NUMERO_INTERIOR,CODIGO_POSTAL,COLONIA,ESTADO,MUNICIPIO_REFERENCIA,
+                MUNICIPIO,CELULAR,TELEFONO,TEL_CONTACTO,PAIS_NACIMIENTO,ENTIDAD_FEDERATIVA,CORREO_ELECTRONICO,
+                INGRESO_MENSUAL,TIPO_COMPROBANTE_INGRESOS,TIPO_IDENTIFICACION,TIPO_COMPROBANTE_DOMICILIO,
+                NUMERO_REFERENCIAS,REFERENCIA_CREDITICIA_1,ULTIMOS_4_DIGITOS_TARJETA_1,REFERENCIA_CREDITICIA_2,
+                ULTIMOS_4_DIGITOS_TARJETA_2,REFERENCIA_CREDITICIA_3,ULTIMOS_4_DIGITOS_TARJETA_3,RP_APELLIDO_PATERNO,
+                RP_APELLIDO_MATERNO,RP_NOMBRE,RP_PARENTESCO,RP_TELEFONO,RP_EXTENSION,FECHA_VISITA_SUCURSAL
+                ) 
+                VALUES (
+                v_ID_SURVEY,v_ID_USER,v_date_created,v_customerid,v_ID_PHONE,v_tipificacionid,v_CAMPANA,v_STATUS_FROM_TMK,
+                v_PRODUCTO,v_TDC,v_LINEA_TDC,v_FOLIO_BASE,v_FECHA_NACIMIENTO,v_AP_PATERNO,v_AP_MATERNO,v_NOMBRE,
+                v_RFC,v_HOMOCLAVE,v_CURP,v_COMENTARIOS,v_CALLE,v_NUMERO_EXTERIOR,v_NUMERO_INTERIOR,v_CODIGO_POSTAL,
+                v_COLONIA,v_ESTADO,v_MUNICIPIO_REFERENCIA,v_MUNICIPIO,v_CELULAR,v_TELEFONO,v_TEL_CONTACTO,
+                v_PAIS_NACIMIENTO,v_ENTIDAD_FEDERATIVA,v_CORREO_ELECTRONICO,v_INGRESO_MENSUAL,
+                v_TIPO_COMPROBANTE_INGRESOS,v_TIPO_IDENTIFICACION,v_TIPO_COMPROBANTE_DOMICILIO,v_NUMERO_REFERENCIAS,
+                v_REFERENCIA_CREDITICIA_1,v_ULTIMOS_4_DIGITOS_TARJETA_1,v_REFERENCIA_CREDITICIA_2,
+                v_ULTIMOS_4_DIGITOS_TARJETA_2,v_REFERENCIA_CREDITICIA_3,v_ULTIMOS_4_DIGITOS_TARJETA_3,
+                v_v_RP_APELLIDO_PATERNO,v_RP_APELLIDO_MATERNO,v_RP_NOMBRE,v_RP_PARENTESCO,v_RP_TELEFONO,v_RP_EXTENSION,
+                v_FECHA_VISITA_SUCURSAL                
+                );
+                COMMIT;            
+                IF SQL%ROWCOUNT > 0 THEN
+                LOG_BOT(1, v_customerid, 'NUEVO REGISTRO INSERTADO', 1);
+                END IF;            
+        OPEN rc FOR  SELECT v_response AS RESPONSE FROM DUAL; 
+
+        EXCEPTION
+        WHEN OTHERS THEN
+            ROLLBACK;
+            v_response := 2;
+            v_error :=SUBSTR(SQLERRM, 1, 1000);
+            LOG_BOT(2,v_customerid,v_error,0);                        
+            OPEN rc FOR SELECT v_response AS RESPONSE, v_error ERRORS_DETAILS FROM DUAL;
+        END;
+    -------------------------------------------------------------------------------------------------------------        
+    ELSIF v_step = 2 THEN --ESTE METODO ES PARA INSERTAR LAS NO VENTAS               
+
+        BEGIN    
+            v_date_created:= to_date(v_DATEINSERTORACLE, 'DD/MM/YYYY HH24:MI:SS');    
+            EXCEPTION WHEN OTHERS THEN v_date_created:=SYSDATE;
+        END;    
+
+        BEGIN        
+            INSERT INTO NO_VENTAS_BOT (ID_SURVEY, ID_USER,DATEINSERTORACLE, CUSTOMERID,ID_PHONE,TYPIFICATIONID) 
+            VALUES (v_ID_SURVEY, v_ID_USER,v_date_created, v_customerid,v_ID_PHONE, v_tipificacionid);
+            COMMIT;
+
+            IF SQL%ROWCOUNT > 0 THEN
+                LOG_BOT(2, v_customerid, 'NUEVO REGISTRO INSERTADO', 1);
+            END IF;            
+
+            OPEN rc FOR  SELECT v_response AS RESPONSE FROM DUAL; 
+
+        EXCEPTION
+        WHEN OTHERS THEN        
+            ROLLBACK;
+                v_response := 2;
+                v_error :=SUBSTR(SQLERRM, 1, 1000);
+                LOG_BOT(2,v_customerid,v_error,0);            
+            OPEN rc FOR SELECT v_response AS RESPONSE, v_error ERRORS_DETAILS FROM DUAL;
+
+        END;     
+    -------------------------------------------------------------------------------------------------------------                                
+    ELSIF v_step = 3 THEN --SIMULAR NO VENTA
+
+        v_u_estatusllamada := 1006 ;
+        v_estatusllamada := 'ABANDONADO';      
+
+        --VALIDAMOS SI EXISTEN REGISTROS EN LA TABLA NO_VENTAS_BOT
+        BEGIN        
+            SELECT 1 INTO v_exist_sale FROM DUAL 
+                WHERE EXISTS (SELECT 1 FROM NO_VENTAS_BOT WHERE STATUS_SURVEY=0);            
+            EXCEPTION            
+            WHEN OTHERS THEN v_exist_sale := 0;
+        END;
+
+        IF v_exist_sale = 0 THEN 
+            LOG_BOT(2,0,'SIN NO VENTAS A INSERTAR',1);
+            OPEN rc FOR SELECT 2 RESPONSE, 'SIN NO VENTAS EN ORACLE' DETAILS FROM DUAL;             
+            RETURN;
+        END IF;
+
+        FOR NO_VENTAS IN ( SELECT * FROM NO_VENTAS_BOT WHERE STATUS_SURVEY=0 )
+        LOOP      
+            BEGIN    
+                --GENERAMOS UNA BANDERA PARA DIFERENCIAR PROCESOS
+                UPDATE NO_VENTAS_BOT SET STATUS_SURVEY= 1 WHERE ID_SURVEY= NO_VENTAS.ID_SURVEY;
+
+                ---VALIDAR SI EXISTE LA SOLICITUD Y EL U_TELEFONO
+                SELECT COUNT(*) INTO v_exist_customerid
+                FROM REGISTROSPORCAMPAÑA R
+                JOIN REGISTROSTELEFONICOS T ON R.U_PERSONA = T.U_PERSONA
+                WHERE R.U_PERSONA = NO_VENTAS.CUSTOMERID AND R.U_ESTATUSLLAMADA <> 1003
+                AND T.U_TELEFONO = NO_VENTAS.ID_PHONE;
+
+                ---VALIDAR SI LA TIPIFICACION ES VALIDA
+                SELECT COUNT(*) INTO v_exist_tipificacion
+                FROM ESTATUSLLAMADAS E
+                WHERE E.CLAVE_CITI= NO_VENTAS.TYPIFICATIONID AND ID_CAMP IN (2,3) AND NO_VENTAS.TYPIFICATIONID <> '198';
+
+                --VALIDAR SI EXISTE EN SURVEYPERSONAS
+                SELECT COUNT(*) INTO v_exist_surveypersonas
+                FROM SURVEYPERSONAS
+                WHERE CUSTOMERID= NO_VENTAS.CUSTOMERID;
+
+                IF v_exist_customerid = 0 AND v_exist_surveypersonas > 0 THEN
+                    LOG_BOT(2,NO_VENTAS.CUSTOMERID,'YA EXISTE COMO VENTA O NO SE ENCUENTRA',2);
+                    v_details := v_details|| '{"ID_SURVEY":'||NO_VENTAS.ID_SURVEY||',"STATUS":3},';
+                    UPDATE NO_VENTAS_BOT SET STATUS_SURVEY= 3 WHERE ID_SURVEY= NO_VENTAS.ID_SURVEY;
+                    CONTINUE;
+
+                ELSIF v_exist_tipificacion = 0 THEN            
+                    LOG_BOT(2,NO_VENTAS.CUSTOMERID,'SIN TIPIFICACION VALIDA',2);
+                    v_details := v_details|| '{"ID_SURVEY":'||NO_VENTAS.ID_SURVEY||',"STATUS":3},';
+                    UPDATE NO_VENTAS_BOT SET STATUS_SURVEY= 3 WHERE ID_SURVEY= NO_VENTAS.ID_SURVEY;
+                    CONTINUE;            
+                END IF;
+
+                SELECT 
+                    CASE 
+                        WHEN NO_VENTAS.ID_USER = 1 THEN 77651
+                        WHEN NO_VENTAS.ID_USER = 2 THEN 77651
+                        ELSE 77651
+                    END INTO v_u_agente
+                FROM DUAL;     
+
+                --OBTENEMOS U_ESTATUS Y TEXTO
+                SELECT U_ESTATUSLLAMADA,ESTATUS INTO v_u_estatusllamada,v_estatusllamada
+                FROM ESTATUSLLAMADAS E
+                WHERE E.CLAVE_CITI= NO_VENTAS.TYPIFICATIONID AND ID_CAMP IN (2,3) AND ROWNUM <2;
+
+                --OBTENEMOS REGISTRO Y U_TELEFONO
+                SELECT U_REGISTROCAMPAÑA,U_TELEFONO INTO v_u_registro,v_u_telefono
+                FROM REGISTROSPORCAMPAÑA R 
+                JOIN REGISTROSTELEFONICOS T ON R.U_PERSONA=T.U_PERSONA
+                WHERE R.U_PERSONA = NO_VENTAS.CUSTOMERID and T.U_TELEFONO = NO_VENTAS.ID_PHONE;
+
+                --SI EXISTEN 2 O MAS CONTACTOS EFECTIVOS SE VUELVE CONSUMIDO EN AUTOMATICO
+                SELECT COUNT(*) INTO v_exist_contact  
+                FROM RESULTADOSLLAMADAS RL
+                JOIN ESTATUSLLAMADAS EL ON EL.U_ESTATUSLLAMADA =RL.U_ESTATUSLLAMADA 
+                WHERE RL.U_REGISTROCAMPAÑA=v_u_registro AND UPPER(EL.CATEGORIA)  = 'CE' 
+                AND EL.U_ESTATUSLLAMADA <> 407;
+
+                --ARTICULO 44 AUTOMATICO
+                SELECT COUNT(*) INTO v_existe_ce_previo
+                FROM RESULTADOSLLAMADAS rl 
+                JOIN ESTATUSLLAMADAS el on rl.U_ESTATUSLLAMADA = el.U_ESTATUSLLAMADA
+                WHERE U_REGISTROCAMPAÑA = v_u_registro AND UPPER(el.STATUS_ENCABEZADO) = 'CE AGENDA';
+
+                SELECT COUNT(*) INTO v_cont_automatico
+                FROM ESTATUSLLAMADAS
+                WHERE UPPER(STATUS_ENCABEZADO) = 'CE RECHAZO' AND U_ESTATUSLLAMADA =v_u_estatusllamada;                
+
+                BEGIN
+                    SELECT 1 INTO v_cont_consumido FROM DUAL 
+                    WHERE EXISTS (
+                        SELECT 1 FROM ESTATUSLLAMADAS
+                        WHERE CONSUMIDO = 1 AND U_ESTATUSLLAMADA IN (
+                            SELECT U_ESTATUSLLAMADA 
+                            FROM RESULTADOSLLAMADAS 
+                            WHERE U_REGISTROCAMPAÑA = v_u_registro
+                        ) 
+                    );            
+                    EXCEPTION            
+                    WHEN OTHERS THEN v_cont_consumido := 0;
+                END; 
+
+                --ACTUALIZAR REGISTROSPORCAMPAÑA
+                UPDATE REGISTROSPORCAMPAÑA SET U_RESERVAAGENTE= v_u_agente,U_ESTATUSLLAMADA= 1006 ,
+                    ESTATUSREGISTRO = 'ABANDONADO',FECHAULTIMOESTATUS =NO_VENTAS.DATEINSERTORACLE
+                WHERE U_PERSONA = NO_VENTAS.CUSTOMERID;                      
+
+                --INSERTAR REGISTROS EN RESULTADOSLLAMADAS
+                INSERT INTO RESULTADOSLLAMADAS 
+                (
+                    HORADIA, DURACIONSEG, COMENTARIOS, U_ESTATUSLLAMADA, U_AGENTE, U_REGISTROCAMPAÑA, U_CAMPAÑA, 
+                    U_TELEFONO, U_SUPERVISOR, GRABACION, CENTRO, COMENTARIOS_2, UUID, CICLOS
+                )
+                VALUES(
+                    NO_VENTAS.DATEINSERTORACLE,0, v_estatusllamada, v_u_estatusllamada,
+                    v_u_agente, v_u_registro, 1,v_u_telefono, v_u_supervisor, NULL, 'BOT', NULL, 0, NULL
+                );    
+
+
+                /*
+                Si existen 2 o mas contactos efectivos en calificaciones, se vuelve consumido en automático el registro.
+
+                Si existe una calificacion de CE previa y la actual es una calificacion de CE pero de rechazo, 
+                se califica como articulo 22 automatico                
+                */
+                IF v_exist_contact > 1 OR (v_existe_ce_previo > 0 AND v_cont_automatico > 0)  
+                    OR v_cont_consumido > 0 THEN                
+                    --ACTUALIZAR REGISTROSPORCAMPAÑA
+                    UPDATE REGISTROSPORCAMPAÑA SET U_RESERVAAGENTE= v_u_agente,U_ESTATUSLLAMADA= 1008 ,
+                        ESTATUSREGISTRO = 'CONSUMIDO',FECHAULTIMOESTATUS =NO_VENTAS.DATEINSERTORACLE
+                    WHERE U_PERSONA = NO_VENTAS.CUSTOMERID;                                       
+                END IF;
+
+                IF v_cont_automatico > 0 THEN
+                    --INSERTAR REGISTROS EN RESULTADOSLLAMADAS
+                    INSERT INTO RESULTADOSLLAMADAS 
+                    (
+                        HORADIA, DURACIONSEG, COMENTARIOS, U_ESTATUSLLAMADA, U_AGENTE, U_REGISTROCAMPAÑA, U_CAMPAÑA, 
+                        U_TELEFONO, U_SUPERVISOR, GRABACION, CENTRO, COMENTARIOS_2, UUID, CICLOS
+                    )
+                    VALUES(
+                        NO_VENTAS.DATEINSERTORACLE,0, 'CONSUMIDO', 7,
+                        v_u_agente, v_u_registro, 1,v_u_telefono, v_u_supervisor, NULL, 'BOT', NULL, 0, NULL
+                    );
+                    UPDATE registrostelefonicos  SET  u_estatusllamada = 7
+                    WHERE  u_telefono = v_u_telefono;
+
+                END IF;               
+
+
+
+                UPDATE NO_VENTAS_BOT SET STATUS_SURVEY= 99 WHERE ID_SURVEY= NO_VENTAS.ID_SURVEY;
+                COMMIT;
+
+                v_details := v_details|| '{"ID_SURVEY":'||NO_VENTAS.ID_SURVEY||',"STATUS":'||v_response||'},';
+                LOG_BOT(2,NO_VENTAS.CUSTOMERID,'NO VENTA SIMULADA',1);                        
+
+
+            EXCEPTION WHEN OTHERS THEN                 
+                ROLLBACK ;
+                UPDATE NO_VENTAS_BOT SET STATUS_SURVEY= 2 WHERE ID_SURVEY= NO_VENTAS.ID_SURVEY;
+            END;
+
+
+
+        END LOOP;            
+        v_details := v_details||'{}]';
+
+        OPEN rc FOR  SELECT v_response AS RESPONSE,v_details DETAILS, v_error ERRORS_DETAILS  FROM DUAL;
+
+    ELSIF v_step = 4 THEN  --OBTENER DATOS DE LOS CLIENTES
+
+        BEGIN
+            SELECT 1 INTO v_exist_sale FROM DUAL 
+            WHERE EXISTS (SELECT 1 FROM BD_PRECARGA WHERE UPPER(CENTRO) LIKE '%BOT%' );            
+            EXCEPTION            
+            WHEN OTHERS THEN v_exist_sale := 0;
+        END;
+
+        IF v_exist_sale = 0 THEN 
+            LOG_BOT(3,0,'SIN PRECARGA',1);
+            OPEN rc FOR SELECT 2 RESPONSE, 'SIN DATOS EN BD_PRECARGA ORACLE' DETAILS FROM DUAL;             
+            RETURN;
+        END IF;            
+
+        OPEN rc FOR 
+            SELECT 
+                CASE 
+                    WHEN UPPER(CENTRO) LIKE 'BOTN' THEN 1
+                    WHEN UPPER(CENTRO) LIKE 'BOTV' THEN 2	
+                    ELSE 99
+                END ID_USER,            
+                bp.U_PERSONA CUSTOMERID,
+                P.NOMBRES NAME,
+                P.APELLIDO_PATERNO LAST_NAME_P,
+                P.APELLIDO_MATERNO LAST_NAME_M,
+                --bp.NUMCLIENTE NUMCLIENTE,
+                B.PRODUCTO PRODUCT_TYPE,	
+                CASE 
+                    WHEN B.PRODUCTO LIKE '%AAC%' THEN B.AAC_DESCRIPTIVO_TC_1
+                    WHEN B.PRODUCTO LIKE '%TCB%' THEN B.TCB_DESCRIPTIVO_TC_1		
+                    ELSE 'NA'
+                END PRODUCT_1,
+                CASE 
+                    WHEN B.PRODUCTO LIKE '%AAC%' THEN B.AAC_DESCRIPTIVO_TC_2
+                    WHEN B.PRODUCTO LIKE '%TCB%' THEN B.TCB_DESCRIPTIVO_TC_2		
+                    ELSE 'NA'
+                END PRODUCT_2		
+            FROM BD_PRECARGA bp  
+            JOIN BD b ON BP.U_PERSONA = B.U_PERSONA
+            JOIN PERSONAS P ON P.U_PERSONA = b.U_PERSONA
+            WHERE UPPER(bp.CENTRO) LIKE '%BOT%'
+            ;
+    ELSIF v_step = 5 THEN  --REPORTE DE NO VENTAS
+            OPEN rc FOR
+                SELECT 
+                    B.CUSTOMERID SOLICITUD,
+                    --B.DATEINSERTORACLE FECHA_ALTA_API,	
+                    TO_CHAR(B.DATEINSERTORACLE, 'DD/MM/YYYY HH24:MI:SS') FECHA_ALTA_API,
+                    E.ESTATUS CALIFICACION,	
+                    /*CASE 
+                        WHEN UPPER(Z.CENTRO) = 'BOTN' THEN 'NUXIBA'
+                        WHEN UPPER(Z.CENTRO) = 'BOTV' THEN 'DIRECTO'
+                        ELSE Z.CENTRO
+                    END PROVEEDOR                    */
+                    CASE 
+                        WHEN B.ID_USER = 1 THEN 'NUXIBA' 
+                        WHEN B.ID_USER = 2 THEN 'DIRECTO' 
+                    END PROVEEDOR
+                FROM NO_VENTAS_BOT B
+                LEFT JOIN REGISTROSPORCAMPAÑA R ON B.CUSTOMERID = R.U_PERSONA    
+                LEFT JOIN ZONAS Z ON R.U_ZONA = Z.U_ZONA 
+                LEFT JOIN ESTATUSLLAMADAS E ON B.TYPIFICATIONID = E.CLAVE_CITI 
+                --WHERE B.STATUS_SURVEY = 99            
+            ;
+    ELSIF v_step = 6 THEN  --REPORTE PROCESADAS
+            OPEN rc FOR
+                SELECT 
+                S.CUSTOMERID SOLICITUD,
+                S.SURVEYID PRODUCTO,
+                TO_CHAR(S.PROCDATE,'DD/MM/YYYY HH24:MI:SS') FECHA,
+                P.NOMBRES || ' '||P.APELLIDO_PATERNO||' '||APELLIDO_MATERNO NOMBRE_CLIENTE
+                FROM SURVEYPERSONAS s
+                JOIN REGISTROSPORCAMPAÑA r ON S.CUSTOMERID=R.U_PERSONA
+                JOIN PERSONAS P ON S.CUSTOMERID = P.U_PERSONA
+                LEFT JOIN ZONAS z ON R.U_ZONA = Z.U_ZONA
+                WHERE S.VALIDAVOZ = 0 AND S.VALIDANDO = 2 AND S.COMMENTS = 'SOLICITUD CAPTURADA OK' 
+                AND UPPER(Z.CENTRO) LIKE '%BOT%' 
+            ;             
+    ELSE --Simular venta   
+        v_u_estatusllamada := 1003 ;
+        v_estatusllamada := 'VENTA OK';                 
+
+        BEGIN
+            SELECT 1 INTO v_exist_sale FROM DUAL 
+            WHERE EXISTS (SELECT 1 FROM VENTAS_BOT WHERE STATUS_SURVEY=0);            
+            EXCEPTION            
+            WHEN OTHERS THEN v_exist_sale := 0;
+        END;
+
+        IF v_exist_sale = 0 THEN 
+            LOG_BOT(1,0,'SIN VENTAS A INSERTAR',1);
+            OPEN rc FOR SELECT 2 RESPONSE, 'SIN VENTAS EN ORACLE' DETAILS FROM DUAL;             
+            RETURN;
+        END IF;
+
+        FOR VENTAS IN ( SELECT * FROM VENTAS_BOT WHERE STATUS_SURVEY=0 )
+        LOOP        
+
+            BEGIN
+            --VALIDAMOS SI EXISTE EN REGISTROSPORCAMPAÑA Y NO ES VENTA   
+            SELECT 1 INTO v_exist_customerid FROM DUAL
+            WHERE EXISTS (
+                SELECT 1 FROM REGISTROSPORCAMPAÑA R
+                JOIN REGISTROSTELEFONICOS T ON R.U_PERSONA = T.U_PERSONA
+                WHERE R.U_PERSONA = VENTAS.CUSTOMERID AND R.U_ESTATUSLLAMADA <> 1003
+                AND T.U_TELEFONO = VENTAS.ID_PHONE
+            );            
+            EXCEPTION
+            WHEN OTHERS THEN 
+                v_exist_customerid := 0;
+            END;    
+
+
+            BEGIN
+            --VALIDAMOS SI EXISTE COMO VENTA
+            SELECT 1 INTO v_exist_surveypersonas FROM DUAL
+            WHERE EXISTS (
+                SELECT 1 FROM SURVEYPERSONAS 
+                WHERE CUSTOMERID= VENTAS.CUSTOMERID
+            );
+
+            EXCEPTION
+            WHEN OTHERS THEN 
+                v_exist_surveypersonas := 0;
+            END;            
+
+
+            IF v_exist_customerid = 0 OR v_exist_surveypersonas <> 0  THEN
+                LOG_BOT(1,VENTAS.CUSTOMERID,'YA EXISTE COMO VENTA O NO SE ENCUENTRA',1);
+                v_details := v_details|| '{"ID_SURVEY":'||VENTAS.ID_SURVEY||',"STATUS":3},';                 
+                UPDATE VENTAS_BOT SET STATUS_SURVEY= 3 WHERE ID_SURVEY= VENTAS.ID_SURVEY;                
+                CONTINUE;
+            END IF;
+
+            --ESTO SE DEBE DE AJUSTAR CUANDO SE TENGAN LOS USUARIOS
+            SELECT 
+                CASE 
+                    WHEN VENTAS.ID_USER = 1 THEN 77651
+                    WHEN VENTAS.ID_USER = 2 THEN 77651
+                    ELSE 77651
+                END INTO v_u_agente
+            FROM DUAL;            
+
+            --Simular proceso de venta
+            BEGIN    
+                SAVEPOINT SALE_PROCESS;
+
+                --GENERAMOS UNA BANDERA PARA DIFERENCIAR PROCESOS
+                UPDATE VENTAS_BOT SET STATUS_SURVEY= 1 WHERE ID_SURVEY= VENTAS.ID_SURVEY;
+
+                SELECT U_REGISTROCAMPAÑA,U_TELEFONO INTO v_u_registro,v_u_telefono
+                FROM REGISTROSPORCAMPAÑA R 
+                JOIN REGISTROSTELEFONICOS T ON R.U_PERSONA=T.U_PERSONA
+                WHERE R.U_PERSONA = VENTAS.CUSTOMERID and T.U_TELEFONO = VENTAS.ID_PHONE;
+
+                --ACTUALIZAR REGISTROSPORCAMPAÑA
+                UPDATE REGISTROSPORCAMPAÑA SET U_RESERVAAGENTE= v_u_agente,U_ESTATUSLLAMADA= 1 ,
+                    ESTATUSREGISTRO = 'SOL OK',FECHAULTIMOESTATUS =VENTAS.DATEINSERTORACLE
+                WHERE U_PERSONA = VENTAS.CUSTOMERID;
+
+                --INSERTAR REGISTRO COMO PROCESADA
+                INSERT INTO CITISOFOM.SURVEYPERSONAS
+                (   
+                    CUSTOMERID, SURVEYID, U_LANGUAJE, U_REGISTRO, PROCDATE, COMMENTS,CONSECUTIVO,U_AGENTE, 
+                    U_SUPERVISOR,FOLIO, VALIDAVOZ, ESTATUS, VALIDANDO, AGENTEVALIDA, RESULTADO, CLAVEAUTENTICACION,
+                    ERROR,FECHAAUTENTICACION, U_CAMPAÑA, RAZONCANCELACIONID, ESTATUSCAIDO, FECHACAIDO, U_TELEFONO, 
+                    GRABACION
+                )                
+                VALUES(
+                    VENTAS.CUSTOMERID,1,1,v_u_registro,VENTAS.DATEINSERTORACLE,'SOLICITUD CAPTURADA OK',
+                    SEC_PERSONAS.nextval,v_u_agente,v_u_supervisor,0,0,'SOL OK',2,0,NULL,NULL,NULL,
+                    VENTAS.DATEINSERTORACLE,1,0,NULL,VENTAS.DATEINSERTORACLE,v_u_telefono,NULL
+                );               
+
+                --AGREGAR ESTATUS DE VENTA AL TELEFONO 
+                UPDATE REGISTROSTELEFONICOS SET U_ESTATUSLLAMADA = 1010
+                WHERE U_PERSONA = VENTAS.CUSTOMERID;
+
+                --INSERTAR REGISTROS EN RESULTADOSLLAMADAS
+                INSERT INTO RESULTADOSLLAMADAS 
+                (
+                    HORADIA, DURACIONSEG, COMENTARIOS, U_ESTATUSLLAMADA, U_AGENTE, U_REGISTROCAMPAÑA, U_CAMPAÑA, 
+                    U_TELEFONO, U_SUPERVISOR, GRABACION, CENTRO, COMENTARIOS_2, UUID, CICLOS
+                )
+                VALUES(
+                    VENTAS.DATEINSERTORACLE,1, 'TELEFONO VENTA', v_u_estatusllamada,
+                    v_u_agente, v_u_registro, 1,v_u_telefono, v_u_supervisor, NULL, 'BOT', NULL, 0, NULL
+                );
+
+                COMMIT; --SE AGREGA COMMIT POR QUE AUNQUE FALLE AL INSERTAR LOS DATOS YA LA PUEDE TOMAR VALIDACION
+
+                ------------------------SURVEYRESPONSE----------------------------                
+                OPEN COMBINACIONES;
+                LOOP
+                    FETCH COMBINACIONES INTO v_registro;
+                    EXIT WHEN COMBINACIONES%NOTFOUND;                    
+
+                    v_sql := 'INSERT INTO SURVEYRESPONSE
+                    (CUSTOMERID, SURVEYID, U_LANGUAJE, QUESTIONID, CHOICEID, RESPONSEDATE, RESPONSEFREEFORM, 
+                    RESPONSENUMERIC, PAGEID)
+                    SELECT '||VENTAS.CUSTOMERID||',1,1,'||v_registro.QUESTIONID||','||v_registro.CHOICEID||',
+                    TO_DATE('''||VENTAS.DATEINSERTORACLE||'''),'||
+                    ' (SELECT '||v_registro.COLUMN_NAME||' FROM VENTAS_BOT WHERE ID_SURVEY = '||VENTAS.ID_SURVEY||'),1, NULL FROM DUAL';
+
+                    EXECUTE IMMEDIATE v_sql;
+
+                    END LOOP;
+                CLOSE COMBINACIONES;
+
+                -----------------------------------------------------------------------------
+                UPDATE VENTAS_BOT SET STATUS_SURVEY= 99 WHERE ID_SURVEY= VENTAS.ID_SURVEY;
+
+                COMMIT;
+
+                v_details := v_details|| '{"ID_SURVEY":'||VENTAS.ID_SURVEY||',"STATUS":'||v_response||'},';
+                LOG_BOT(1,VENTAS.CUSTOMERID,'VENTA SIMULADA',1);
+
+            EXCEPTION WHEN OTHERS THEN                 
+                    DBMS_OUTPUT.PUT_LINE('Ocurrió un error 1:');
+                    DBMS_OUTPUT.PUT_LINE('Código: ' || SQLCODE);
+                    DBMS_OUTPUT.PUT_LINE('Mensaje: ' || SQLERRM);
+                    DBMS_OUTPUT.PUT_LINE('Stack: ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+                    DBMS_OUTPUT.PUT_LINE('Línea: ' || $$PLSQL_LINE);
+                v_response := 2;
+                v_error :=SUBSTR(SQLERRM, 1, 1000);
+                LOG_BOT(1,VENTAS.CUSTOMERID,v_error,0);
+                INSERT INTO RESULTADOSLLAMADAS (HORADIA, DURACIONSEG, COMENTARIOS, U_ESTATUSLLAMADA, U_AGENTE, U_REGISTROCAMPAÑA, U_CAMPAÑA, U_TELEFONO, U_SUPERVISOR, GRABACION, CENTRO, COMENTARIOS_2, UUID, CICLOS)
+                VALUES(sysdate,0, v_error, 0,v_u_agente, v_u_registro, 1,v_u_telefono, v_u_supervisor, NULL, 'BOT', NULL, 0, NULL);
+                COMMIT;
+
+                ROLLBACK TO SALE_PROCESS;
+                UPDATE VENTAS_BOT SET STATUS_SURVEY= 2 WHERE ID_SURVEY= VENTAS.ID_SURVEY;
+            END;            
+        END LOOP;    
+
+        v_details := v_details||'{}]';
+        OPEN rc FOR  SELECT v_response AS RESPONSE,v_details DETAILS, v_error ERRORS_DETAILS  FROM DUAL;     
+    END IF;
+
+---------------------------------------------------------------------------------------------------------------------------------
+EXCEPTION
+WHEN OTHERS THEN
+    v_response := 2;    
+    DBMS_OUTPUT.PUT_LINE('Ocurrió un error 2:');
+    DBMS_OUTPUT.PUT_LINE('Código: ' || SQLCODE);
+    DBMS_OUTPUT.PUT_LINE('Mensaje: ' || SQLERRM);
+    DBMS_OUTPUT.PUT_LINE('Stack: ' || DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+    DBMS_OUTPUT.PUT_LINE('Línea: ' || $$PLSQL_LINE);
+    v_error :=SUBSTR(SQLERRM, 1, 1000); 
+    LOG_BOT(0,0,v_error,0);
+    OPEN rc FOR SELECT v_response AS RESPONSE, v_error ERRORS_DETAILS FROM DUAL;   
+
+
+
+    --CATALOGO DE ESTATUS PARA EL PROCESO
+/*
+    0 -- REGISTROS NUEVOS
+    1 -- COMIENZA PROCESO
+    2 -- ERROR EN EL PROCESO
+    3 -- SOLICITUD YA EXISTE COMO VENTA
+    4 -- NO SE ENCUENTRA TELEFONO PARA ESA SOLICITUD
+    99 -- PROCESO FINALIZADO TODO BIEN
+*/
+END;

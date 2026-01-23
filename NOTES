@@ -1,0 +1,159 @@
+Inteligencia Artificial (AI): Interacciones y prompts|
+-----------------------------------------------------
+Primera semana
+
+tranformesrs y modelos d elenguaje generativo
+ia generativa 
+GANS
+GENERADOR- CLASIFICADOR O DISCRIMINADOR
+
+red neuronal generativa adversarial
+vector de ruido
+------------------------------------
+SEGUNDA SEMANA 
+
+LLMS
+PROMPTS
+ALEATORIDAD
+
+PATRON DE PROMPTS
+MODELO LINGÚISTICO
+
+4 PARTES IDENTIFICABLES DE LOS PROMPTS
+TAREA A REALIZAR
+CONTEXTO
+INPUT
+FORMATO DE SALIDA
+-----------
+tips para crear un prompts
+1)simpleza
+2)precision
+3)ser especificos
+4)ofrecer ejemplos
+5)reafirmar el pedido
+
+errores comunes en promts ->
+lenguaje neutral
+
+juego del rol
+persona-audiencia
+
+patron verificador
+
+------------------------------------
+TERCERA SEMANA
+Zero-Shot, One-Shot, Few-Shot
+Formatos de salida
+Escribiendo textos con ChatGPT -> objetivo claro(que, a quien, en que tono)
+Hacia el prompt perfecto:
+definir clararamente la audiencia
+asignar un rol
+ir de lo general a lo particular
+no dar instrucciones negativas
+dar ejemplos
+enfrocar el modelo como un DEBES
+ir paso a paso
+limitar la respuesta
+restringir las fuentes
+definir el tono
+
+------------------------------------
+CUARTA SEMANA
+Esquema COSTAR->Para escrirbir promts
+COSTAR->
+C->contexto
+O->objetivo
+S->estilo
+T->tono
+A->audiencia
+R->respuesta
+
+implicaciones eticas
+Alucinaciones
+derechos de autor
+presencia de sesgos
+impacto ambiental
+impacto laboral
+
+
+conceptos:
+Alucinación
+LLM
+Algoritmo
+Sesgo
+Machine Learning
+Red neuronal
+GPT
+Prompt
+IA Generativa
+AGI
+
+
+-------------------------------------------------------
+API Testing con POSTMAN : Masterclass todo en 1 (2025) |
+-------------------------------------------------------
+api_testing
+unit->pruebas locales
+service->nicel medio, todas las api deben de ser probadas(postman)
+ui->nivel usuario
+
+tipos de pruebas de API CON jmeter-zopei
+funcionalidad
+carga
+seguridad
+
+
+-------------------------------------------------------------
+|Curso Completo de Prompt Engineering para IA Generativa A-Z|
+-------------------------------------------------------------
+BASE LLM
+INSTRUCCION TUNED llm
+CONCEPTOS CLAV ES 
+PLN
+LLM
+TRASFORMER
+PARAMETROS
+TOKEN
+MULTIMODALIDAD
+
+priming
+SHOP PROMTING->
+zero-shot, one-shot, few-shot
+
+TECNICAS DE:
+Chain-of-thought y zero-shot Chain-of-thought
+Role Playing, limitaciones y JailBreak
+Prompting Positivo y Negativo
+Iterative Prompting
+Model Guided Prompting
+
+Incluir detalles relevantes y pedirle que adopte una personalidad
+INSTRUCCIONES CLARAS
+DETALLES ESPECIFICOS
+REFERENCIAS TEXTUALES
+SUBTAREAS
+TIEMPO PARA PENSAR
+
+
+Usuario:
+proyectosia@impulse-telecom.com
+ 
+Contraseña:
+ProyectosIA.
+
+
+https://nuxipedia.nuxiba.com/centerware-kolob-administrador/
+
+udemy
+API Testing con POSTMAN : Masterclass todo en 1 (2025)
+Quick Introduction to Postman and API Testing for Beginners
+Markdown Mastery: Simple yet Powerful Writing Format
+Curso Completo de Prompt Engineering para IA Generativa A-Z
+
+
+coursera
+Inteligencia Artificial (AI): Interacciones y prompts
+
+
+P4SSW0RD5:
+Lcmu837%
